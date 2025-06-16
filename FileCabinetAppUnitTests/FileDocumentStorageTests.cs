@@ -1,4 +1,5 @@
 using OOP_FileCabinetApp.deserializeHelpers;
+using OOP_FileCabinetApp.settings;
 using OOP_FileCabinetApp.src;
 using OOP_FileCabinetApp.storage;
 using OOP_FileCabinetApp.types;
@@ -24,7 +25,18 @@ public class FileDocumentStorageTests : IDisposable
         deserializationRegistry.RegisterStrategy(new PatentDeserializationStrategy());
         deserializationRegistry.RegisterStrategy(new MagazineDeserializationStrategy());
 
-        _storage = new FileDocumentStorage(_testDirectory, deserializationRegistry);
+        var cacheSettings = new Dictionary<Type, DocumentCacheSettings>
+        {
+            { typeof(Book), new DocumentCacheSettings { CacheDuration = TimeSpan.FromMinutes(30) } }, // Cache for 30 minutes
+            { typeof(LocalizedBook), new DocumentCacheSettings { CacheDuration = TimeSpan.FromHours(1) } }, // Cache for 1 hour
+            { typeof(Patent), new DocumentCacheSettings { DoNotCache = true } }, // No cache for Patents
+            { typeof(Magazine), new DocumentCacheSettings { CacheDuration = TimeSpan.FromDays(1) } } // Cache for 1 day
+        };
+
+        // Initialize the cache
+        var cache = new DocumentCache(cacheSettings);
+
+        _storage = new FileDocumentStorage(_testDirectory, deserializationRegistry, cache);
     }
 
     [Fact]
@@ -209,6 +221,84 @@ public class FileDocumentStorageTests : IDisposable
         Assert.NotNull(exception);
     }
 
+    [Fact]
+    public void GetCardInfo_ShouldReturnCachedCardInfo_WhenCacheIsValid()
+    {
+        // Arrange
+        var cacheSettings = new Dictionary<Type, DocumentCacheSettings>
+    {
+        { typeof(Book), new DocumentCacheSettings { CacheDuration = TimeSpan.FromMinutes(30) } }
+    };
+
+        var cache = new DocumentCache(cacheSettings);
+
+        var deserializationRegistry = new DocumentDeserializationRegistry();
+        deserializationRegistry.RegisterStrategy(new BookDeserializationStrategy());
+
+        var storage = new FileDocumentStorage("TestLibraryStorage", deserializationRegistry, cache);
+
+        string documentNumber = "book_#12345";
+        string jsonContent = @"
+    {
+        ""ISBN"": ""12345"",
+        ""Title"": ""Sample Book"",
+        ""Authors"": ""John Doe"",
+        ""NumberOfPages"": 300,
+        ""Publisher"": ""Test Publisher"",
+        ""DatePublished"": ""2022-01-01T00:00:00"",
+        ""DocumentNumber"": ""book_#12345""
+    }";
+
+        Directory.CreateDirectory("TestLibraryStorage"); // Create test storage directory
+        File.WriteAllText(Path.Combine("TestLibraryStorage", $"{documentNumber}.json"), jsonContent);
+
+        // Act
+        string firstCardInfo = storage.GetCardInfo(documentNumber); // Retrieve and populate cache
+        string secondCardInfo = storage.GetCardInfo(documentNumber); // Retrieve from cache
+
+        // Assert
+        Assert.Equal(firstCardInfo, secondCardInfo); // Cached card info should be identical
+    }
+
+    [Fact]
+    public void GetCardInfo_ShouldReFetchCardInfo_WhenCacheExpires()
+    {
+        // Arrange
+        var cacheSettings = new Dictionary<Type, DocumentCacheSettings>
+    {
+        { typeof(Book), new DocumentCacheSettings { CacheDuration = TimeSpan.FromSeconds(1) } }
+    };
+
+        var cache = new DocumentCache(cacheSettings);
+
+        var deserializationRegistry = new DocumentDeserializationRegistry();
+        deserializationRegistry.RegisterStrategy(new BookDeserializationStrategy());
+
+        var storage = new FileDocumentStorage("TestLibraryStorage", deserializationRegistry, cache);
+
+        string documentNumber = "book_#12345";
+        string jsonContent = @"
+    {
+        ""ISBN"": ""12345"",
+        ""Title"": ""Expiring Book"",
+        ""Authors"": ""John Cache"",
+        ""NumberOfPages"": 400,
+        ""Publisher"": ""Cache Publisher"",
+        ""DatePublished"": ""2023-01-01T00:00:00"",
+        ""DocumentNumber"": ""book_#12345""
+    }";
+
+        Directory.CreateDirectory("TestLibraryStorage");
+        File.WriteAllText(Path.Combine("TestLibraryStorage", $"{documentNumber}.json"), jsonContent);
+
+        // Act
+        string firstCardInfo = storage.GetCardInfo(documentNumber); // Cache populated
+        Thread.Sleep(2000); // Wait for the cache to expire
+        string secondCardInfo = storage.GetCardInfo(documentNumber); // Cache expired; re-fetch from storage
+
+        // Assert
+        Assert.Equal(firstCardInfo, secondCardInfo); // Ensure the result is the same after re-fetching
+    }
     public void Dispose()
     {
         if (Directory.Exists(_testDirectory))

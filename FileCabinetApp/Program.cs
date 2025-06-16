@@ -1,5 +1,6 @@
 ﻿using OOP_FileCabinetApp.deserializeHelpers;
 using OOP_FileCabinetApp.interfaces;
+using OOP_FileCabinetApp.settings;
 using OOP_FileCabinetApp.src;
 using OOP_FileCabinetApp.storage;
 using OOP_FileCabinetApp.types;
@@ -22,7 +23,19 @@ class program
         deserializationRegistry.RegisterStrategy(new PatentDeserializationStrategy());
         deserializationRegistry.RegisterStrategy(new MagazineDeserializationStrategy());
 
-        IDocumentStorage storage = new FileDocumentStorage(storageDirectory, deserializationRegistry);
+        // Configure cache settings for document types
+        var cacheSettings = new Dictionary<Type, DocumentCacheSettings>
+        {
+            { typeof(Book), new DocumentCacheSettings { CacheDuration = TimeSpan.FromMinutes(30) } }, // Cache for 30 minutes
+            { typeof(LocalizedBook), new DocumentCacheSettings { CacheDuration = TimeSpan.FromHours(1) } }, // Cache for 1 hour
+            { typeof(Patent), new DocumentCacheSettings { DoNotCache = true } }, // No cache for Patents
+            { typeof(Magazine), new DocumentCacheSettings { CacheDuration = TimeSpan.FromDays(1) } } // Cache for 1 day
+        };
+
+        // Initialize the cache
+        var cache = new DocumentCache(cacheSettings);
+
+        IDocumentStorage storage = new FileDocumentStorage(storageDirectory, deserializationRegistry, cache);
         DocumentSearcher searcher = new DocumentSearcher(storage);
 
         Console.WriteLine("Welcome to the File Cabinet System!");
