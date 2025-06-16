@@ -1,20 +1,22 @@
-﻿using System.Text.Json;
+﻿using OOP_FileCabinetApp.deserializeHelpers;
 using OOP_FileCabinetApp.interfaces;
-using OOP_FileCabinetApp.types;
+using OOP_FileCabinetApp.src;
 
 namespace OOP_FileCabinetApp.storage
 {
     public class FileDocumentStorage : IDocumentStorage
     {
         public readonly string storageDirectory;
+        private readonly DocumentDeserializationRegistry _deserializationRegistry;
 
-        public FileDocumentStorage(string directory) 
+        public FileDocumentStorage(string directory, DocumentDeserializationRegistry deserializationRegistry) 
         {
             storageDirectory = directory;
             if (!Directory.Exists(storageDirectory))
-            {
                 Directory.CreateDirectory(storageDirectory);
-            }
+
+            // Initialize the registry and register all default strategies.
+            _deserializationRegistry = deserializationRegistry;
         }
 
         public void SaveDocument(IDocument document)
@@ -31,22 +33,7 @@ namespace OOP_FileCabinetApp.storage
                 throw new FileNotFoundException($"Document {documentNumber} does not exist");
 
             string jsonData = File.ReadAllText(filePath);
-            return DeserializedDocument(documentNumber, jsonData);
-        }
-
-        private IDocument DeserializedDocument(string documentNumber, string jsonData)
-        {
-            if(documentNumber.StartsWith("book_#"))
-                return JsonSerializer.Deserialize<Book>(jsonData);
-            if (documentNumber.StartsWith("localizedbook_#"))
-                return JsonSerializer.Deserialize<LocalizedBook>(jsonData);
-            if (documentNumber.StartsWith("patent_#"))
-                return JsonSerializer.Deserialize<Patent>(jsonData);
-            if (documentNumber.StartsWith("magazine_#"))
-                return JsonSerializer.Deserialize<Magazine>(jsonData);
-
-            throw new InvalidOperationException("Unsupported document type");
-
+            return _deserializationRegistry.DeserializeDocument(documentNumber, jsonData);
         }
     }
 }

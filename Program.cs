@@ -1,4 +1,6 @@
-﻿using OOP_FileCabinetApp.interfaces;
+﻿using OOP_FileCabinetApp.deserializeHelpers;
+using OOP_FileCabinetApp.interfaces;
+using OOP_FileCabinetApp.src;
 using OOP_FileCabinetApp.storage;
 using OOP_FileCabinetApp.types;
 
@@ -12,7 +14,15 @@ class program
     static void Main()
     {
         string storageDirectory = "LibraryStorage";
-        IDocumentStorage storage = new FileDocumentStorage(storageDirectory);
+
+        //Initialize the deserialization strategies
+        var deserializationRegistry = new DocumentDeserializationRegistry();
+        deserializationRegistry.RegisterStrategy(new BookDeserializationStrategy());
+        deserializationRegistry.RegisterStrategy(new LocalizedBookDeserializationStrategy());
+        deserializationRegistry.RegisterStrategy(new PatentDeserializationStrategy());
+        deserializationRegistry.RegisterStrategy(new MagazineDeserializationStrategy());
+
+        IDocumentStorage storage = new FileDocumentStorage(storageDirectory, deserializationRegistry);
         DocumentSearcher searcher = new DocumentSearcher(storage);
 
         Console.WriteLine("Welcome to the File Cabinet System!");
