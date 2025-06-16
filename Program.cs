@@ -4,6 +4,11 @@ using OOP_FileCabinetApp.types;
 
 class program
 {
+    static readonly string book = "1";
+    static readonly string localizedBook = "2";
+    static readonly string patent = "3";
+    static readonly string magazine = "4";
+
     static void Main()
     {
         string storageDirectory = "LibraryStorage";
@@ -51,12 +56,8 @@ class program
 
     static void AddNewDocument(IDocumentStorage storage)
     {
-        Console.WriteLine("Choose the document type: (1) Book, (2) Localized Book, (3) Patent ");
+        Console.WriteLine("Choose the document type: (1) Book, (2) Localized Book, (3) Patent (4) Magazine ");
         string type = Console.ReadLine() ?? throw new ArgumentNullException();
-        
-        string book = "1";
-        string localizedBook = "2";
-        string patent = "3";
 
         IDocument document;
         if (type == book)
@@ -94,6 +95,16 @@ class program
                 DatePublished = DateTime.Parse(Prompt("Date Published")),
                 ExpirationDate = DateTime.Parse(Prompt("Expiration Date")),
                 UniqueId = Prompt("Unique ID")
+            };
+        }
+        else if (type == magazine)
+        {
+            document = new Magazine
+            {
+                Title = Prompt("Title"),
+                Publisher = Prompt("Publisher"),
+                DatePublished = DateTime.Parse(Prompt("Date Published")),
+                ReleaseNumber = int.Parse(Prompt("Release Number"))
             };
         }
         else

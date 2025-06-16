@@ -11,6 +11,8 @@ namespace OOP_FileCabinetApp.interfaces
     {
         string DocumentNumber { get; }
         string GetCardInfo();
-        string Serialize();
+
+        //leaving serialize here so Json.Serialize can be define for each type of document
+        string Serialize(); 
     }
 }

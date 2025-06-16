@@ -42,6 +42,8 @@ namespace OOP_FileCabinetApp.storage
                 return JsonSerializer.Deserialize<LocalizedBook>(jsonData);
             if (documentNumber.StartsWith("patent_#"))
                 return JsonSerializer.Deserialize<Patent>(jsonData);
+            if (documentNumber.StartsWith("magazine_#"))
+                return JsonSerializer.Deserialize<Magazine>(jsonData);
 
             throw new InvalidOperationException("Unsupported document type");
 

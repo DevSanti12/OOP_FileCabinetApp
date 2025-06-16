@@ -16,7 +16,7 @@ namespace OOP_FileCabinetApp.types
 
         public string GetCardInfo()
         {
-            return $"Book (ISBN: {ISBN}, Title: {Title}, Authors: {Authors}, Publisher: {Publisher}, Published: {DatePublished.ToShortDateString()}";
+            return $"Book (ISBN: {ISBN}, Title: {Title}, Authors: {Authors}, Publisher: {Publisher}, Published: {DatePublished.ToShortDateString()} )";
         }
         public string Serialize()
         {
